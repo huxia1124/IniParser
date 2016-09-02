@@ -126,6 +126,8 @@ public:
 	int ToInt(int iDefault);
 	INT32 ToInt32();
 	INT32 ToInt32(INT32 iDefault);
+	double ToDouble();
+	double ToDouble(double fDefault);
 	SIZE ToSize();
 	POINT ToPoint();
 	LPCTSTR ToString();
@@ -158,19 +160,23 @@ public:
 
 	friend class CParseIni;
 
+#ifdef UNICODE
+	typedef map <wstring, CIniPartValue*, CParseIni::_CNoCaseLess> PARTVALUEMAP;
+	typedef map <wstring, CIniPartValue*, CParseIni::_CNoCaseLess>::iterator POSITION;
+#else
+	typedef map <string, CIniPartValue*, CParseIni::_CNoCaseLess> PARTVALUEMAP;
+	typedef map <string, CIniPartValue*, CParseIni::_CNoCaseLess>::iterator POSITION;
+#endif
+
 protected:
 
 	CParseIni *m_pProfile;
 	LONG m_iPartIndex;
 
 #ifdef UNICODE
-	typedef map <wstring, CIniPartValue*, CParseIni::_CNoCaseLess> PARTVALUEMAP;
-	typedef map <wstring, CIniPartValue*, CParseIni::_CNoCaseLess>::iterator POSITION;
 	PARTVALUEMAP m_mapPartValues;
 	wstring m_strPartName;
 #else
-	typedef map <string, CIniPartValue*, CParseIni::_CNoCaseLess> PARTVALUEMAP;
-	typedef map <string, CIniPartValue*, CParseIni::_CNoCaseLess>::iterator POSITION;
 	PARTVALUEMAP m_mapPartValues;
 	string m_strPartName;
 #endif

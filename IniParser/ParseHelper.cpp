@@ -131,6 +131,20 @@ INT32 CParseHelper::ParseInt32(LPCTSTR lpszInt32, INT32 iDefault)
 	return _ttoi(lpszInt32);
 }
 
+double CParseHelper::ParseDouble(LPCTSTR lpszDouble)
+{
+	return _tcstod(lpszDouble, NULL);
+}
+
+double CParseHelper::ParseDouble(LPCTSTR lpszDouble, double fDefault)
+{
+	if (*lpszDouble == _T('\0'))
+		return fDefault;
+
+	return _tcstod(lpszDouble, NULL);
+}
+
+
 BOOL CParseHelper::ParseFont(LPCTSTR lpszFont, LOGFONT* lpLogFont)	//FontFaceName 12 Bold
 {
 	memset(lpLogFont, 0, sizeof(LOGFONT));

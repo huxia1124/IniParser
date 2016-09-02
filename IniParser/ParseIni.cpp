@@ -68,6 +68,16 @@ INT32 CIniPartValue::ToInt32(INT32 iDefault)
 	return CParseHelper::ParseInt32(m_strValue.c_str(), iDefault);
 }
 
+double CIniPartValue::ToDouble()
+{
+	return CParseHelper::ParseDouble(m_strValue.c_str());
+}
+
+double CIniPartValue::ToDouble(double fDefault)
+{
+	return CParseHelper::ParseDouble(m_strValue.c_str(), fDefault);
+}
+
 SIZE CIniPartValue::ToSize()
 {
 	return CParseHelper::ParseSize(m_strValue.c_str());
@@ -372,7 +382,7 @@ BOOL CParseIni::LoadFromFile(LPCTSTR lpszFilePathName)
 	HANDLE hFile = NULL;
 
 	hFile = ::CreateFile(lpszFilePathName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-	if(hFile == NULL)
+	if(hFile == INVALID_HANDLE_VALUE)
 		return FALSE;
 
 	DWORD dwFileSize, dwFileSizeHigh;
@@ -464,10 +474,12 @@ CIniPart* CParseIni::GetNextPart(POSITION &pos)
 {
 	CIniPart *pPart = NULL;
 	INIPARTMAP::iterator it = pos;
-	if(it != m_mapIniParts.end())
+	if (it != m_mapIniParts.end())
+	{
 		pPart = it->second;
-
-	pos++;
+		pos++;
+	}
+	
 	return pPart;
 }
 

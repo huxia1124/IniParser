@@ -38,6 +38,8 @@ public:
 	static int ParseInt(LPCTSTR lpszInt, int iDefault);		//XXX
 	static INT32 ParseInt32(LPCTSTR lpszInt32);		//XXX
 	static INT32 ParseInt32(LPCTSTR lpszInt32, INT32 iDefault);		//XXX
+	static double ParseDouble(LPCTSTR lpszDouble);		//XXX.xx
+	static double ParseDouble(LPCTSTR lpszDouble, double fDefault);		//XXX.xx
 	static BOOL ParseFont(LPCTSTR lpszFont, LOGFONT* lpLogFont);	//FontFaceName 12 Bold
 	static BOOL ParseFont(LPCTSTR lpszFont, LPTSTR lpszFaceNameBuf, DWORD cchBufLen, LPINT lpSize, LPBOOL lpBold, LPBOOL lpItalic);
 	static BOOL ParseMargins(LPCTSTR lpszMargins, LPRECT lpMargins);	//X,X,X,X
