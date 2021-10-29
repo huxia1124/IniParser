@@ -208,9 +208,9 @@ BOOL CIniPart::WriteFile(HANDLE hFile)
 	DWORD dwWritten = 0;
 	while(GetNextKeyValue(pos, lpszKey, lpszValue))
 	{
-		::WriteFile(hFile, lpszKey, _tcslen(lpszKey) * sizeof(TCHAR), &dwWritten, NULL);
+		::WriteFile(hFile, lpszKey, static_cast<DWORD>(_tcslen(lpszKey) * sizeof(TCHAR)), &dwWritten, NULL);
 		::WriteFile(hFile, szEqual, sizeof(szEqual), &dwWritten, NULL);
-		::WriteFile(hFile, lpszValue, _tcslen(lpszValue) * sizeof(TCHAR), &dwWritten, NULL);
+		::WriteFile(hFile, lpszValue, static_cast<DWORD>(_tcslen(lpszValue) * sizeof(TCHAR)), &dwWritten, NULL);
 		::WriteFile(hFile, szCRLF, sizeof(szCRLF), &dwWritten, NULL);
 	}
 	return ::WriteFile(hFile, szCRLF, sizeof(szCRLF), &dwWritten, NULL);
@@ -253,7 +253,7 @@ LPCTSTR CIniPart::GetValueString(LPCTSTR lpszKeyName)
 
 LONG CIniPart::GetKeyCount()
 {
-	return m_mapPartValues.size();
+	return static_cast<LONG>(m_mapPartValues.size());
 }
 
 CIniPart::POSITION CIniPart::GetFirstKeyValuePos()
@@ -455,7 +455,7 @@ BOOL CParseIni::WriteToFile(LPCTSTR lpszFilePathName)
 
 		//Write Section Name
 		::WriteFile(hFile, szSurround, sizeof(TCHAR), &dwWritten, NULL);
-		::WriteFile(hFile, pPart->GetPartName(), _tcslen(pPart->GetPartName()) * sizeof(TCHAR), &dwWritten, NULL);
+		::WriteFile(hFile, pPart->GetPartName(), static_cast<DWORD>(_tcslen(pPart->GetPartName()) * sizeof(TCHAR)), &dwWritten, NULL);
 		::WriteFile(hFile, szSurround + 1, sizeof(TCHAR), &dwWritten, NULL);
 		::WriteFile(hFile, szCRLF, sizeof(szCRLF), &dwWritten, NULL);
 		pPart->WriteFile(hFile);
@@ -487,7 +487,7 @@ CIniPart* CParseIni::GetNextPart(POSITION &pos)
 BOOL CParseIni::LoadFromStringA(LPCSTR lpszString)
 {
 #ifdef UNICODE
-	int nLen = strlen(lpszString);
+	int nLen = static_cast<int>(strlen(lpszString));
 	WCHAR *pwBuf = new WCHAR[nLen * 2 + 2];
 
 	MultiByteToWideChar(CP_ACP, 0, lpszString, -1, pwBuf, nLen * 2 + 2);
@@ -520,6 +520,9 @@ LONG CParseIni::LoadFromString(LPCTSTR lpszString, UINT cchKeyBufferLen /* = 256
 {
 	Clear();
 
+	if (*lpszString == 0)
+		return 0;
+
 	LONG nCurrentPartIndex = 0;
 
 	// Parse the whole string, using DFA method
@@ -537,48 +540,50 @@ LONG CParseIni::LoadFromString(LPCTSTR lpszString, UINT cchKeyBufferLen /* = 256
 	CIniPart *pCurrentPart = new CIniPart(INI_ROOTSECTION_NAME, this, nCurrentPartIndex++);
 	m_mapIniParts[INI_ROOTSECTION_NAME] = pCurrentPart;
 
-	while(*lpszString)
+	TCHAR currentChar = 0;
+	do
 	{
-		switch(iStatus)
+		currentChar = *lpszString;
+		switch (iStatus)
 		{
 		case INI_STATUS_START:	//Start status
 #ifndef UNICODE
-			if(*lpszString & 0x80)
+			if(currentChar & 0x80)
 			{
 				iPreStatus = INI_STATUS_KEY;
 				iStatus = INI_STATUS_DBCS_FIRSTPART;
 				iPos1 = 0;
-				szPart1[iPos1++] = *lpszString;
+				szPart1[iPos1++] = currentChar;
 			}
 			else
 #endif
-			if(*lpszString == _T(';'))
+			if(currentChar == _T(';'))
 			{
 				iStatus = INI_STATUS_COMMENT;
 			}
-			else if(*lpszString == _T('['))
+			else if(currentChar == _T('['))
 			{
 				iStatus = INI_STATUS_SECTION;
 				iPos1 = 0;
 			}
-			else if(*lpszString > 0x20 && *lpszString != _T('='))
+			else if(currentChar > 0x20 && currentChar != _T('='))
 			{
 				iStatus = INI_STATUS_KEY;
 				iPos1 = 0;
-				szPart1[iPos1++] = *lpszString;
+				szPart1[iPos1++] = currentChar;
 			}
 			break;
 		case INI_STATUS_SECTION:	//In section name
 #ifndef UNICODE
-			if(*lpszString & 0x80)
+			if(currentChar & 0x80)
 			{
 				iPreStatus = iStatus;
 				iStatus = INI_STATUS_DBCS_FIRSTPART;
-				szPart1[iPos1++] = *lpszString;
+				szPart1[iPos1++] = currentChar;
 			}
 			else
 #endif
-			if(*lpszString == _T(']'))
+			if(currentChar == _T(']'))
 			{
 				szPart1[iPos1] = _T('\0');
 				INIPARTMAP::iterator it = m_mapIniParts.find(szPart1);
@@ -594,28 +599,28 @@ LONG CParseIni::LoadFromString(LPCTSTR lpszString, UINT cchKeyBufferLen /* = 256
 			}
 			else
 			{
-				szPart1[iPos1++] = *lpszString;
+				szPart1[iPos1++] = currentChar;
 			}
 			break;
 		case INI_STATUS_KEY:	//In Key name
 #ifndef UNICODE
-			if(*lpszString & 0x80)
+			if(currentChar & 0x80)
 			{
 				iPreStatus = iStatus;
 				iStatus = INI_STATUS_DBCS_FIRSTPART;
-				szPart1[iPos1++] = *lpszString;
+				szPart1[iPos1++] = currentChar;
 			}
 			else
 #endif
-			if(*lpszString == _T('\r') || *lpszString == _T('\n'))
+			if(currentChar == _T('\r') || currentChar == _T('\n'))
 			{
 				iStatus = INI_STATUS_START;
 			}
-			else if(*lpszString != _T('='))
+			else if(currentChar != _T('='))
 			{
-				szPart1[iPos1++] = *lpszString;
+				szPart1[iPos1++] = currentChar;
 			}
-			else if(*lpszString == _T('='))
+			else if(currentChar == _T('='))
 			{
 				szPart1[iPos1] = _T('\0');
 
@@ -635,37 +640,40 @@ LONG CParseIni::LoadFromString(LPCTSTR lpszString, UINT cchKeyBufferLen /* = 256
 			break;
 		case INI_STATUS_PREVALUE:		//after '=', before Value
 #ifndef UNICODE
-			if(*lpszString & 0x80)
+			if(currentChar & 0x80)
 			{
 				iPreStatus = INI_STATUS_VALUE;
 				iStatus = INI_STATUS_DBCS_FIRSTPART;
 				iPos2 = 0;
-				szPart2[iPos2++] = *lpszString;
+				szPart2[iPos2++] = currentChar;
 			}
 			else
 #endif
-			if(*lpszString == _T('\r') || *lpszString == _T('\n'))
+			if(currentChar == _T('\r') || currentChar == _T('\n') || currentChar == _T('\0'))
 			{
+				szPart2[0] = _T('\0');
+				pCurrentPart->SetValue(szPart1, szPart2);
+
 				iStatus = INI_STATUS_START;
 			}
-			if(*lpszString > 0x20)
+			else if(currentChar > 0x20)
 			{
 				iStatus = INI_STATUS_VALUE;
 				iPos2 = 0;
-				szPart2[iPos2++] = *lpszString;
+				szPart2[iPos2++] = currentChar;
 			}
 			break;
 		case INI_STATUS_VALUE:	//In value
 #ifndef UNICODE
-			if(*lpszString & 0x80)
+			if(currentChar & 0x80)
 			{
 				iPreStatus = iStatus;
 				iStatus = INI_STATUS_DBCS_FIRSTPART;
-				szPart2[iPos2++] = *lpszString;
+				szPart2[iPos2++] = currentChar;
 			}
 			else
 #endif
-			if(*lpszString == _T('\r') || *lpszString == _T('\n'))
+			if(currentChar == _T('\r') || currentChar == _T('\n') || currentChar == _T('\0'))
 			{
 				szPart2[iPos2] = _T('\0');
 
@@ -683,28 +691,28 @@ LONG CParseIni::LoadFromString(LPCTSTR lpszString, UINT cchKeyBufferLen /* = 256
 				pCurrentPart->SetValue(szPart1, szPart2);
 				iStatus = INI_STATUS_START;
 			}
-			else if(*lpszString == _T(';'))
+			else if(currentChar == _T(';'))
 			{
 				szPart2[iPos2] = _T('\0');
 				pCurrentPart->SetValue(szPart1, szPart2);
 				iStatus = INI_STATUS_COMMENT;
 			}
-			else if(*lpszString >= 0x20)
+			else if(currentChar >= 0x20)
 			{
-				szPart2[iPos2++] = *lpszString;
+				szPart2[iPos2++] = currentChar;
 			}
 			break;
 		case INI_STATUS_COMMENT:	//In Comment
 #ifndef UNICODE
-			if(*lpszString & 0x80)
+			if(currentChar & 0x80)
 			{
 				iPreStatus = iStatus;
 				iStatus = INI_STATUS_DBCS_FIRSTPART;
-				szPart2[iPos2++] = *lpszString;
+				szPart2[iPos2++] = currentChar;
 			}
 			else
 #endif
-			if(*lpszString == _T('\r') || *lpszString == _T('\n'))
+			if(currentChar == _T('\r') || currentChar == _T('\n'))
 			{
 				iStatus = INI_STATUS_START;
 			}
@@ -713,19 +721,20 @@ LONG CParseIni::LoadFromString(LPCTSTR lpszString, UINT cchKeyBufferLen /* = 256
 		case INI_STATUS_DBCS_FIRSTPART:	//In First part of DBCS
 			iStatus = iPreStatus;
 			if(iPreStatus < INI_STATUS_PREVALUE)
-				szPart1[iPos1++] = *lpszString;
+				szPart1[iPos1++] = currentChar;
 			else
-				szPart2[iPos2++] = *lpszString;
+				szPart2[iPos2++] = currentChar;
 			break;
 #endif
 		}
 		lpszString++;
 	}
+	while (currentChar);
 
 	delete []szPart1;
 	delete []szPart2;
 
-	return m_mapIniParts.size();
+	return static_cast<LONG>(m_mapIniParts.size());
 }
 
 LONG CParseIni::GetPartNamesLeadWith(LPCTSTR lpszLead, STRINGVECTOR *pStringVector, BOOL bClear)
@@ -761,7 +770,7 @@ LONG CParseIni::GetPartNamesLeadWith(LPCTSTR lpszLead, STRINGVECTOR *pStringVect
 
 LONG CParseIni::GetPartCount()
 {
-	return m_mapIniParts.size();
+	return static_cast<LONG>(m_mapIniParts.size());
 }
 
 CIniPart* CParseIni::FindPart(LPCTSTR lpszPartName)
